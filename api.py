@@ -1,11 +1,10 @@
 import os
 import psycopg2
-from fastapi import FastAPI
+from fastapi import FastAPI, Request # Adicionamos o Request aqui
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Permite que o site na Vercel acesse a API no Render
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,41 +12,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pega o link do banco das configurações do Render
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL)
 
 @app.get("/calcular")
-def calcular(valor: float, tipo: str, cupom: float = 0):
-    # 1. Aplicar o desconto do cupom primeiro
+def calcular(valor: float, tipo: str, request: Request, cupom: float = 0):
+    # Identifica o IP do usuário (no Render, usamos o header 'x-forwarded-for')
+    ip_cliente = request.headers.get("x-forwarded-for") or request.client.host
+
+    # Sua lógica de cálculo (que já está certa)
     valor_com_desconto = valor * (1 - cupom / 100)
-    
-    # 2. Definir a taxa base (5%)
-    taxa_base = 0.05
-    
-    # 3. Regra: Se a compra (pós-desconto) for acima de 500, o cash de 5% dobra
-    if valor_com_desconto > 500:
-        taxa_base = 0.10  # O dobro de 5%
-        
-    # 4. Calcular o cashback inicial
+    taxa_base = 0.10 if valor_com_desconto > 500 else 0.05
     cashback_calculado = valor_com_desconto * taxa_base
-    
-    # 5. Regra VIP: Se for VIP, ganha 10% a mais SOBRE o cashback calculado
     if tipo.lower() == "vip":
-        # Multiplicar por 1.10 adiciona 10% ao valor existente
-        cashback_calculado = cashback_calculado * 1.10
-        
-    # Arredondar para 2 casas decimais
-    cashback_final = round(cashback_calculado, 2)
+        cashback_calculado *= 1.10
     
-    # Salva no Banco (usando a tabela 'consultas' que criamos)
+    cashback_final = round(cashback_calculado, 2)
+
+    # SALVA COM O IP
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO consultas (tipo, valor, cashback) VALUES (%s, %s, %s)",
-        (tipo, valor_com_desconto, cashback_final)
+        "INSERT INTO consultas (tipo, valor, cashback, ip) VALUES (%s, %s, %s, %s)",
+        (tipo, valor_com_desconto, cashback_final, ip_cliente)
     )
     conn.commit()
     cur.close()
@@ -56,14 +45,21 @@ def calcular(valor: float, tipo: str, cupom: float = 0):
     return {"cashback": cashback_final}
 
 @app.get("/historico")
-def historico():
+def historico(request: Request):
+    # Identifica quem está pedindo o histórico
+    ip_cliente = request.headers.get("x-forwarded-for") or request.client.host
+
     conn = get_db_connection()
     cur = conn.cursor()
-    # Busca os dados ordenando pelo mais recente
-    cur.execute("SELECT tipo, valor, cashback FROM consultas ORDER BY data_consulta DESC LIMIT 10")
+    
+    # BUSCA APENAS OS DADOS DESSE IP ESPECÍFICO
+    cur.execute(
+        "SELECT tipo, valor, cashback FROM consultas WHERE ip = %s ORDER BY data_consulta DESC LIMIT 10",
+        (ip_cliente,)
+    )
+    
     dados = cur.fetchall()
     cur.close()
     conn.close()
     
-    # Formata para o JavaScript entender
     return [{"tipo": d[0], "valor": d[1], "cashback": d[2]} for d in dados]
