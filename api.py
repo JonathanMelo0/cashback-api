@@ -5,7 +5,7 @@ import os
 
 app = FastAPI(title="Sistema de Cashback")
 
-# 🔥 CORS (necessário pro frontend funcionar)
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,11 +14,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🔗 conexão com banco do Render
-DATABASE_URL = os.getenv(postgresql://cashback_user:egRoWm40ANB2ACve3IkMR9nOB2NDxPko@dpg-d7glo1nlk1mc7398buv0-a.ohio-postgres.render.com/cashback_ndxs)
+# URL do banco (vem do Render)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 
-# 🧠 função de cálculo
 def calcular_cashback(valor, tipo, cupom):
     valor_final = valor * (1 - cupom / 100)
 
@@ -33,10 +32,8 @@ def calcular_cashback(valor, tipo, cupom):
     return round(cashback, 2)
 
 
-# 💰 endpoint de cálculo + salvar no banco
 @app.get("/calcular")
 def calcular(request: Request, valor: float, tipo: str, cupom: float = 0):
-
     cashback = calcular_cashback(valor, tipo, cupom)
     ip = request.client.host
 
@@ -59,7 +56,6 @@ def calcular(request: Request, valor: float, tipo: str, cupom: float = 0):
     return {"cashback": cashback}
 
 
-# 📊 endpoint de histórico por IP
 @app.get("/historico")
 def historico(request: Request):
     ip = request.client.host
@@ -78,14 +74,12 @@ def historico(request: Request):
         cur.close()
         conn.close()
 
-        return dados
+        # 🔥 retorno estruturado (corrige seu JS)
+        return [
+            {"tipo": d[0], "valor": d[1], "cashback": d[2]}
+            for d in dados
+        ]
 
     except Exception as e:
         print("Erro ao buscar histórico:", e)
         return []
-
-
-# ▶️ rodar local (opcional)
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
