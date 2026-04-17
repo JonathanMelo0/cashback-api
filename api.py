@@ -19,28 +19,43 @@ def get_db_connection():
 
 @app.get("/calcular")
 def calcular(valor: float, tipo: str, request: Request, cupom: float = 0):
-    # Identifica o IP do usuário (no Render, usamos o header 'x-forwarded-for')
+    # Identifica o IP para o histórico privado
     ip_cliente = request.headers.get("x-forwarded-for") or request.client.host
 
-    # Sua lógica de cálculo (que já está certa)
-    valor_com_desconto = valor * (1 - cupom / 100)
-    taxa_base = 0.10 if valor_com_desconto > 500 else 0.05
-    cashback_calculado = valor_com_desconto * taxa_base
-    if tipo.lower() == "vip":
-        cashback_calculado *= 1.10
+    # 1. Aplicar o cupom sobre o valor original
+    # Se cupom for 0, valor_pago será igual ao valor original.
+    valor_pago = valor * (1 - (cupom / 100))
     
-    cashback_final = round(cashback_calculado, 2)
+    # 2. Definir a TAXA BASE (usando decimais corretos!)
+    taxa_base = 0.05  # 5%
+    
+    # REGRA: Se a compra (já com desconto) for acima de 500, a taxa dobra (10%)
+    if valor_pago > 500:
+        taxa_base = 0.10  # 10%
+        
+    # 3. Cálculo do Cashback Inicial
+    cashback = valor_pago * taxa_base
+    
+    # 4. REGRA VIP: 10% a mais SOBRE o valor do cashback (bônus de 1.1x)
+    if tipo.lower() == "vip":
+        cashback = cashback * 1.10
+        
+    # 5. ARREDONDAMENTO (Crucial para não virar um número gigante)
+    cashback_final = round(cashback, 2)
 
-    # SALVA COM O IP
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO consultas (tipo, valor, cashback, ip) VALUES (%s, %s, %s, %s)",
-        (tipo, valor_com_desconto, cashback_final, ip_cliente)
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
+    # Salva no Banco
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO consultas (tipo, valor, cashback, ip) VALUES (%s, %s, %s, %s)",
+            (tipo, round(valor_pago, 2), cashback_final, ip_cliente)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"❌ Erro ao salvar: {e}")
     
     return {"cashback": cashback_final}
 
