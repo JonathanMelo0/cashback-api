@@ -2,10 +2,9 @@ const btn = document.getElementById("btnCalcular");
 const listaHistorico = document.getElementById("listaHistorico");
 const resultado = document.getElementById("resultado");
 
-// 1. AQUI VOCÊ COLA O SEU LINK DO RENDER ENTRE AS ASPAS
+// COLOQUE O SEU LINK DO RENDER AQUI (TERMINA COM .onrender.com)
 const API_URL = "https://cashback-api-1.onrender.com"; 
 
-// FUNÇÃO QUE BUSCA DO BANCO
 async function atualizarHistorico() {
     try {
         const response = await fetch(`${API_URL}/historico`);
@@ -15,8 +14,8 @@ async function atualizarHistorico() {
 
         dados.forEach(item => {
             const li = document.createElement("li");
-            // AJUSTADO: Usando os nomes que a sua API realmente envia (tipo, valor, cashback)
-            li.innerText = `Cliente: ${item.tipo} | Valor: R$ ${item.valor} | Cashback: R$ ${item.cashback}`;
+            // Agora os nomes batem com o que o Python envia
+            li.innerHTML = `<strong>${item.tipo.toUpperCase()}</strong>: Compra de R$ ${item.valor} ⮕ Cashback: <span>R$ ${item.cashback}</span>`;
             listaHistorico.appendChild(li);
         });
     } catch (e) {
@@ -24,16 +23,12 @@ async function atualizarHistorico() {
     }
 }
 
-// BOTÃO CALCULAR
 btn.addEventListener("click", async () => {
     const valor = document.getElementById("valorCompra").value;
     const tipo = document.getElementById("tipoCliente").value;
     const cupom = document.getElementById("cupom").value || 0;
 
-    if (!valor || valor <= 0) {
-        resultado.innerText = "Digite um valor válido.";
-        return;
-    }
+    if (!valor) return alert("Digite o valor da compra!");
 
     resultado.innerText = "Calculando...";
 
@@ -41,15 +36,14 @@ btn.addEventListener("click", async () => {
         const response = await fetch(`${API_URL}/calcular?valor=${valor}&tipo=${tipo}&cupom=${cupom}`);
         const data = await response.json();
 
-        resultado.innerText = `Cashback: R$ ${data.cashback}`;
+        resultado.innerHTML = `<h3>Resultado: R$ ${data.cashback}</h3>`;
         
-        // Atualiza a lista com os dados do banco
+        // Atualiza a lista após salvar
         atualizarHistorico();
     } catch (error) {
-        resultado.innerText = "Erro ao conectar com a API.";
-        console.error(error);
+        resultado.innerText = "Erro ao conectar com o servidor.";
     }
 });
 
-// CARREGA ASSIM QUE ABRE O SITE
+// Inicia a lista quando o site abre
 window.onload = atualizarHistorico;
