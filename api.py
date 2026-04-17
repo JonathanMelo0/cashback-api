@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+# Configuração de CORS para permitir acesso da Vercel
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -12,7 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# FORMA CORRETA: O link deve estar configurado no painel do Render como DATABASE_URL
+# Puxa o link do banco das variáveis de ambiente do Render
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_db_connection():
@@ -20,25 +21,25 @@ def get_db_connection():
 
 @app.get("/calcular")
 def calcular(valor: float, tipo: str, request: Request, cupom: float = 0):
-    # 1. Identifica o IP real do usuário (essencial para o histórico privado)
-    ip_cliente = request.headers.get("x-forwarded-for") or request.client.host
+    # Identifica o IP do usuário para o histórico privado
+    ip_cliente = request.headers.get("x-forwarded-for", "").split(",")[0] or request.client.host
     
     conn = None
     try:
-        # 2. Lógica de Cálculo
+        # 1. Aplicar desconto do cupom primeiro
         valor_com_desconto = valor * (1 - (cupom / 100))
         
-        # Regra: 5% base. Se for > 500, dobra para 10%
-        taxa = 0.10 if valor_com_desconto > 500 else 0.05
-        cashback = valor_com_desconto * taxa
+        # 2. Regra: 5% base. Se a compra for > 500, a taxa base dobra (10%)
+        taxa_base = 0.10 if valor_com_desconto > 500 else 0.05
+        cashback_inicial = valor_com_desconto * taxa_base
         
-        # Regra VIP: +10% em cima do cashback
+        # 3. Regra VIP: Ganha 10% de bônus SOBRE o cashback calculado
         if tipo.lower() == "vip":
-            cashback *= 1.10
+            cashback_inicial *= 1.10
             
-        cashback_final = round(cashback, 2)
+        cashback_final = round(cashback_inicial, 2)
 
-        # 3. Salva no Banco
+        # 4. Salva no Banco com o IP
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
@@ -47,23 +48,24 @@ def calcular(valor: float, tipo: str, request: Request, cupom: float = 0):
         )
         conn.commit()
         cur.close()
+        
         return {"cashback": cashback_final}
         
     except Exception as e:
-        print(f"Erro ao calcular/salvar: {e}")
-        return {"error": "Erro interno no servidor"}, 500
+        print(f"Erro no servidor: {e}")
+        return {"error": "Falha ao processar dados"}, 500
     finally:
         if conn:
-            conn.close() # Libera a conexão para o banco não ficar lento
+            conn.close() # GARANTE que a conexão feche e o banco não fique lento
 
 @app.get("/historico")
 def historico(request: Request):
-    ip_cliente = request.headers.get("x-forwarded-for") or request.client.host
+    ip_cliente = request.headers.get("x-forwarded-for", "").split(",")[0] or request.client.host
     conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        # Filtra apenas pelo IP de quem está acessando
+        # Filtra para mostrar apenas o que esse IP calculou
         cur.execute(
             "SELECT tipo, valor, cashback FROM consultas WHERE ip = %s ORDER BY data_consulta DESC LIMIT 10",
             (ip_cliente,)
@@ -76,4 +78,4 @@ def historico(request: Request):
         return []
     finally:
         if conn:
-            conn.close() # Evita o travamento do banco
+            conn.close()
