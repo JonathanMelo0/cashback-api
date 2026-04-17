@@ -3,7 +3,7 @@ const resultado = document.getElementById("resultado");
 const listaHistorico = document.getElementById("listaHistorico");
 
 // ATENÇÃO: Substitua pelo link que aparece no seu Dashboard do Render
-const API_URL = "https://COLE_AQUI_SEU_LINK_DO_RENDER.onrender.com"; 
+const API_URL = "https://cashback-api-1.onrender.com"; 
 
 // Função para buscar o histórico do banco de dados
 async function carregarHistorico() {
