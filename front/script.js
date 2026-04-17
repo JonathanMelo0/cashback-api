@@ -1,50 +1,39 @@
 const btn = document.getElementById("btnCalcular");
-const resultado = document.getElementById("resultado");
 const listaHistorico = document.getElementById("listaHistorico");
-const API_URL = "https://cashback-api-1.onrender.com";
-// Função para buscar o histórico do banco de dados
-async function carregarHistorico() {
+const API_URL = "http://127.0.0.1:8000";
+
+// FUNÇÃO QUE BUSCA DO BANCO
+async function atualizarHistorico() {
     try {
         const response = await fetch(`${API_URL}/historico`);
         const dados = await response.json();
         
-        // Limpa a lista antes de preencher
-        listaHistorico.innerHTML = "";
+        listaHistorico.innerHTML = ""; // Limpa a lista antes de atualizar
 
         dados.forEach(item => {
             const li = document.createElement("li");
-            li.innerText = `Cliente: ${item.tipo_cliente} | Compra: R$ ${item.valor_compra} | Cashback: R$ ${item.valor_cashback}`;
+            li.innerText = `Cliente: ${item.tipo_cliente} | Valor: R$ ${item.valor_compra} | Cashback: R$ ${item.valor_cashback}`;
             listaHistorico.appendChild(li);
         });
-    } catch (error) {
-        console.error("Erro ao carregar histórico:", error);
+    } catch (e) {
+        console.error("Erro ao carregar histórico:", e);
     }
 }
 
-// Evento do botão Calcular
+// BOTÃO CALCULAR
 btn.addEventListener("click", async () => {
     const valor = document.getElementById("valorCompra").value;
     const tipo = document.getElementById("tipoCliente").value;
     const cupom = document.getElementById("cupom").value || 0;
 
-    if (!valor || valor <= 0) {
-        resultado.innerText = "Digite um valor válido.";
-        return;
-    }
+    const response = await fetch(`${API_URL}/calcular?valor=${valor}&tipo=${tipo}&cupom=${cupom}`);
+    const data = await response.json();
 
-    try {
-        const response = await fetch(`${API_URL}/calcular?valor=${valor}&tipo=${tipo}&cupom=${cupom}`);
-        const data = await response.json();
-
-        resultado.innerText = `Cashback: R$ ${data.cashback}`;
-
-        // Atualiza a lista de histórico buscando os dados novos do banco
-        carregarHistorico();
-
-    } catch (error) {
-        resultado.innerText = "Erro ao conectar com a API.";
-    }
+    document.getElementById("resultado").innerText = `Cashback: R$ ${data.cashback}`;
+    
+    // Chama a função para atualizar a lista com o que acabou de ser salvo no banco
+    atualizarHistorico();
 });
 
-// Carrega o histórico assim que a página abre
-window.onload = carregarHistorico;
+// CARREGA ASSIM QUE ABRE O SITE
+window.onload = atualizarHistorico;
