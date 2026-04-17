@@ -1,8 +1,7 @@
 const btn = document.getElementById("btnCalcular");
 const resultado = document.getElementById("resultado");
 const listaHistorico = document.getElementById("listaHistorico");
-const API_URL = "http://SEU-APP.onrender.com; // URL da sua API local
-
+const API_URL = "https://cashback-api-1.onrender.com";
 // Função para buscar o histórico do banco de dados
 async function carregarHistorico() {
     try {
