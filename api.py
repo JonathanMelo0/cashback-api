@@ -5,6 +5,9 @@ import os
 
 app = FastAPI(title="Sistema de Cashback")
 
+@app.get("/")
+def home():
+    return{"status":"API Online"}
 # CORS
 app.add_middleware(
     CORSMiddleware,
