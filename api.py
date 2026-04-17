@@ -14,7 +14,7 @@ app.add_middleware(
 )
 
 # Pega o link do banco das configurações do Render
-DATABASE_URL = os.getenv("postgresql://cashback_user:egRoWm40ANB2ACve3IkMR9nOB2NDxPko@dpg-d7glo1nlk1mc7398buv0-a.ohio-postgres.render.com/cashback_ndxs")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL)
