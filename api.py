@@ -7,7 +7,7 @@ app = FastAPI(title="Sistema de Cashback")
 
 @app.get("/")
 def home():
-    return{"status":"API Online"}
+    return{"status":"API Online", "projeto": "sistema de cashBack"}
 # CORS
 app.add_middleware(
     CORSMiddleware,
