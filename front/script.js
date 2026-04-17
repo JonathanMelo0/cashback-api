@@ -1,6 +1,9 @@
 const btn = document.getElementById("btnCalcular");
 const listaHistorico = document.getElementById("listaHistorico");
-const API_URL = "http://127.0.0.1:8000";
+const resultado = document.getElementById("resultado");
+
+// 1. AQUI VOCÊ COLA O SEU LINK DO RENDER ENTRE AS ASPAS
+const API_URL = "https://cashback-api-1.onrender.com"; 
 
 // FUNÇÃO QUE BUSCA DO BANCO
 async function atualizarHistorico() {
@@ -8,11 +11,12 @@ async function atualizarHistorico() {
         const response = await fetch(`${API_URL}/historico`);
         const dados = await response.json();
         
-        listaHistorico.innerHTML = ""; // Limpa a lista antes de atualizar
+        listaHistorico.innerHTML = ""; 
 
         dados.forEach(item => {
             const li = document.createElement("li");
-            li.innerText = `Cliente: ${item.tipo_cliente} | Valor: R$ ${item.valor_compra} | Cashback: R$ ${item.valor_cashback}`;
+            // AJUSTADO: Usando os nomes que a sua API realmente envia (tipo, valor, cashback)
+            li.innerText = `Cliente: ${item.tipo} | Valor: R$ ${item.valor} | Cashback: R$ ${item.cashback}`;
             listaHistorico.appendChild(li);
         });
     } catch (e) {
@@ -26,13 +30,25 @@ btn.addEventListener("click", async () => {
     const tipo = document.getElementById("tipoCliente").value;
     const cupom = document.getElementById("cupom").value || 0;
 
-    const response = await fetch(`${API_URL}/calcular?valor=${valor}&tipo=${tipo}&cupom=${cupom}`);
-    const data = await response.json();
+    if (!valor || valor <= 0) {
+        resultado.innerText = "Digite um valor válido.";
+        return;
+    }
 
-    document.getElementById("resultado").innerText = `Cashback: R$ ${data.cashback}`;
-    
-    // Chama a função para atualizar a lista com o que acabou de ser salvo no banco
-    atualizarHistorico();
+    resultado.innerText = "Calculando...";
+
+    try {
+        const response = await fetch(`${API_URL}/calcular?valor=${valor}&tipo=${tipo}&cupom=${cupom}`);
+        const data = await response.json();
+
+        resultado.innerText = `Cashback: R$ ${data.cashback}`;
+        
+        // Atualiza a lista com os dados do banco
+        atualizarHistorico();
+    } catch (error) {
+        resultado.innerText = "Erro ao conectar com a API.";
+        console.error(error);
+    }
 });
 
 // CARREGA ASSIM QUE ABRE O SITE
