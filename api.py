@@ -21,22 +21,39 @@ def get_db_connection():
 
 @app.get("/calcular")
 def calcular(valor: float, tipo: str, cupom: float = 0):
-    # Lógica de Cashback
-    porcentagem = 0.10 if tipo.lower() == "vip" else 0.05
-    cashback = (valor * porcentagem) + (valor * (cupom / 100))
+    # 1. Aplicar o desconto do cupom primeiro
+    valor_com_desconto = valor * (1 - cupom / 100)
     
-    # Salva no Banco (usando os novos nomes de colunas)
+    # 2. Definir a taxa base (5%)
+    taxa_base = 0.05
+    
+    # 3. Regra: Se a compra (pós-desconto) for acima de 500, o cash de 5% dobra
+    if valor_com_desconto > 500:
+        taxa_base = 0.10  # O dobro de 5%
+        
+    # 4. Calcular o cashback inicial
+    cashback_calculado = valor_com_desconto * taxa_base
+    
+    # 5. Regra VIP: Se for VIP, ganha 10% a mais SOBRE o cashback calculado
+    if tipo.lower() == "vip":
+        # Multiplicar por 1.10 adiciona 10% ao valor existente
+        cashback_calculado = cashback_calculado * 1.10
+        
+    # Arredondar para 2 casas decimais
+    cashback_final = round(cashback_calculado, 2)
+    
+    # Salva no Banco (usando a tabela 'consultas' que criamos)
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(
         "INSERT INTO consultas (tipo, valor, cashback) VALUES (%s, %s, %s)",
-        (tipo, valor, cashback)
+        (tipo, valor_com_desconto, cashback_final)
     )
     conn.commit()
     cur.close()
     conn.close()
     
-    return {"cashback": round(cashback, 2)}
+    return {"cashback": cashback_final}
 
 @app.get("/historico")
 def historico():
