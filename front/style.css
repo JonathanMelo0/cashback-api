@@ -3,7 +3,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh; 
+    min-height: 100vh; 
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -13,13 +13,19 @@ body {
     padding: 2rem;
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    width: 100%;
+    width: 90%;
     max-width: 400px; 
+    margin: 20px;
+}
+
+h1 {
+    font-size: 1.5rem;
+    text-align: center;
+    color: #333;
 }
 
 .campo {
     margin-bottom: 1rem;
-    text-align: left;
 }
 
 label {
@@ -36,11 +42,6 @@ input, select, button {
     border-radius: 6px;
     box-sizing: border-box; 
     font-size: 1rem;
-}
-
-/* Melhor UX para inputs numéricos */
-input[type="number"]::-webkit-inner-spin-button {
-    opacity: 0.5;
 }
 
 input:focus, select:focus {
@@ -67,14 +68,13 @@ button:hover {
     font-weight: bold;
     text-align: center;
     font-size: 1.2rem;
-    color: #333;
+    color: #28a745;
 }
 
 #historico-container {
     margin-top: 2rem;
     padding-top: 1rem;
     border-top: 2px solid #eee;
-    text-align: left;
 }
 
 #historico-container h2 {
@@ -92,9 +92,10 @@ button:hover {
 
 #listaHistorico li {
     background: #f9f9f9;
-    margin-bottom: 5px;
-    padding: 8px;
+    margin-bottom: 8px;
+    padding: 10px;
     border-radius: 4px;
     font-size: 0.85rem;
     border-left: 4px solid #28a745;
+    color: #444;
 }
